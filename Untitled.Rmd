@@ -1,0 +1,295 @@
+---
+title: "Extra work on Project 2"
+author: "waheeb Algabri"
+output:
+  pdf_document: default
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(eval = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(openintro)
+```
+
+##### Load required packages
+
+
+```{r}
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+```{r}
+songs <- read_csv("100 Songs.csv")
+
+```
+
+
+```{r}
+head(songs)
+
+```
+
+
+
+##### Tiding and transforming the data
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+data <- songs %>%
+  rename(
+    Acousticness = acousticness,
+    Danceability = danceability,
+    Duration = duration,
+    Energy = energy,
+    Id = id,
+    Instrumentalness = instrumentalness,
+    Key = key,
+    Liveness = liveness,
+    Loudness = loudness,
+    Mode = mode,
+    Name = name,
+    Speechiness = speechiness,
+    Tempo = tempo,
+    Valence = valence
+  )
+
+```
+
+
+```{r}
+sum(is.na(data))
+
+```
+
+```{r}
+sum(duplicated(data))
+
+```
+
+Remove the duplicated
+
+```{r}
+data <- unique(data)
+
+```
+
+change the ID value to be NA
+
+```{r}
+data$ Id<- as.numeric(data$Id)
+
+```
+
+
+Replace the NA values in the Id column with numbers, you can use the if_else() function from dplyr package
+
+```{r}
+library(dplyr)
+
+data <- data %>%
+  mutate(Id = if_else(is.na(Id), 1:nrow(data), Id))
+
+```
+
+
+```{r}
+knitr::kable(head(data), align = "c")
+
+```
+
+
+
+```{r}
+library(ggplot2)
+
+ggplot(data, aes(x = "", y = Duration)) +
+ geom_boxplot() +
+  labs(y = "Duration (s)") +
+  theme_minimal()
+
+```
+
+```{r}
+hist(data$Loudness, breaks = 20, col = "blue", xlab = "Loudness (dB)")
+
+```
+
+```{r}
+str(data)
+```
+
+
+##### Analisis
+
+Is there a relationship between certain characteristics of the songs, such as energy and danceability?
+
+```{r}
+
+# Create a scatter plot of energy vs. danceability
+ggplot(data, aes(x = Energy, y = Danceability)) +
+  geom_point() +
+  labs(x = "Energy", y = "Danceability")
+
+```
+
+```{r}
+
+# Create a histogram of danceability
+ggplot(data, aes(x = Danceability)) +
+  geom_histogram() +
+  labs(x = "Danceability")
+```
+
+
+
+```{r}
+# Create a correlation matrix of all variables
+correlation <- cor(data$Energy, data$Danceability)
+print(correlation)
+```
+
+A correlation coefficient of 0.3336112 suggests a weak positive correlation between the two variables being analyzed. This means that there is a tendency for higher values of one variable to be associated with higher values of the other variable, but the relationship is not very strong. In this case, it indicates that there may be some relationship between the energy and danceability of songs, but it is not a strong or definitive relationship.
+
+
+***
+
+
+##### Load required packages
+
+
+```{r}
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+
+##### load the data into R
+
+```{r}
+pharm<- read_csv("pharma spend by country.csv")
+```
+
+
+```{r}
+head(pharm)
+```
+
+#### Tidying and transforming 
+
+groups the data by LOCATION using the group_by() function, and then summarizes the number of observations for each country using the summarize() function with the n() function
+
+```{r}
+pharm %>%
+  group_by(LOCATION) %>%
+  summarize(n_obs = n())
+
+```
+
+```{r}
+pharm%>%
+  group_by(TIME) %>%
+  summarize(n_obs = n())
+
+```
+
+
+```{r}
+
+pharm%>%
+  summarize(n_countries = n_distinct(LOCATION),
+            n_years = n_distinct(TIME)) %>%
+  bind_rows(pharm %>%
+              group_by(LOCATION) %>%
+              summarize(n_obs = n()) %>%
+              summarize(n_countries = n_distinct(LOCATION),
+                        n_obs = sum(n_obs)) %>%
+              select(n_countries, n_obs)) %>%
+  bind_rows(pharm %>%
+              group_by(TIME) %>%
+              summarize(n_obs = n()) %>%
+              summarize(n_years = n_distinct(TIME),
+                        n_obs = sum(n_obs)) %>%
+              select(n_years, n_obs))
+
+```
+
+Some visualizations to explore the data
+
+```{r}
+
+pharm %>%
+  group_by(TIME) %>%
+  summarize(n_obs = n()) %>%
+  ggplot(aes(x = TIME, y = n_obs)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Year", y = "Number of Observations",
+       title = "Number of Observations by Year")
+
+```
+
+```{r}
+library(tidyverse)
+
+for_label <- pharm %>%
+  group_by(LOCATION) %>%
+  summarize(year=max(TIME), totalspend=max(TOTAL_SPEND))
+
+ggplot(data=pharm, aes(x=TIME, y=TOTAL_SPEND, group=LOCATION, color=LOCATION)) +
+  geom_line(linewidth=1.2) +
+  geom_text(data=for_label, aes(x=year, y=totalspend + 4000, label=LOCATION), size=3, color="black", fontface="bold") +
+  scale_color_viridis_d() +
+  labs(title="Pharmaceutical Spending by Country, 1971-2017",
+       x="Year", y="Total Pharmaceutical Spending (USD billions)",
+       color="Country") +
+  theme_classic() +
+  theme(plot.title = element_text(face="bold", size=18),
+        axis.title = element_text(face="bold", size=14),
+        axis.text = element_text(size=12),
+        legend.position = "bottom",
+        legend.title = element_text(face="bold", size=12),
+        legend.text = element_text(size=10),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  annotate("text", x=1980, y=60000, label="USA has highest spending", size=5, color="black", fontface="bold") +
+  annotate("segment", x=1980, xend=1990, y=60000, yend=60000, size=1.5, color="black", lineend="butt", arrow=arrow(length=unit(0.3,"cm"))) +
+  annotate("text", x=1980, y=25000, label="Japan spends second most", size=5, color="black", fontface="bold") +
+  annotate("segment", x=1980, xend=1990, y=25000, yend=25000, size=1.5, color="black", lineend="butt", arrow=arrow(length=unit(0.3,"cm"))) +
+  annotate("text", x=1995, y=20000, label="Australia, Canada, France, and Germany have similar spending", size=5, color="black", fontface="bold") +
+  annotate("segment", x=1995, xend=2005, y=20000, yend=20000, size=1.5, color="black", lineend="butt", arrow=arrow(length=unit(0.3,"cm")))
+
+```
+
+
+```{r}
+library(dplyr)
+
+summary_data <- pharm %>%
+  group_by(LOCATION) %>%
+  summarize(mean_spend = mean(TOTAL_SPEND),
+            median_spend = median(TOTAL_SPEND),
+            min_spend = min(TOTAL_SPEND),
+            max_spend = max(TOTAL_SPEND),
+            sd_spend = sd(TOTAL_SPEND))
+
+head (summary_data)
+
+```
+
+It is clear from the plots and the summary that the USA has consistently been the biggest pharmaceutical spender among the countries included in the dataset, with spending levels several times higher than other countries.
+
+
+
+
+
